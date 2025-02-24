@@ -11,6 +11,7 @@ from langgraph.graph import END, START, StateGraph
 from index_graph.configuration import IndexConfiguration
 from index_graph.loaders import CodeProjectLoader
 from index_graph.state import IndexState
+from shared import retrieval
 
 
 async def index_docs(
@@ -50,16 +51,16 @@ async def index_docs(
     # Flatten the list of lists into single docs list
     docs = [doc for chunks in chunks_list for doc in chunks]
 
-    # with retrieval.make_retriever(config) as retriever:
-    #     batch_size = min(
-    #         500, max(1, len(docs))
-    #     )  # Target 500 docs per batch, but handle smaller doc counts
-    #     for i in range(0, len(docs), batch_size):
-    #         batch = docs[i : i + batch_size]
-    #         await retriever.aadd_documents(batch)
-    #         print(
-    #             f"Indexed batch {i//batch_size + 1} of {(len(docs) + batch_size - 1)//batch_size}"
-    #         )
+    with retrieval.make_retriever(config) as retriever:
+        batch_size = min(
+            500, max(1, len(docs))
+        )  # Target 500 docs per batch, but handle smaller doc counts
+        for i in range(0, len(docs), batch_size):
+            batch = docs[i : i + batch_size]
+            await retriever.aadd_documents(batch)
+            print(
+                f"Indexed batch {i//batch_size + 1} of {(len(docs) + batch_size - 1)//batch_size}"
+            )
 
     return {"docs": docs}
 

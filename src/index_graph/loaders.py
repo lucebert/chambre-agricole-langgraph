@@ -35,22 +35,23 @@ class CodeProjectLoader:
         # Convert results to Documents
         documents = []
         for result in data.get("results", []):
-            # Create metadata
-            print(result)
-            metadata = {
-                "id": result.get("id"),
-                "title": result.get("title"),
-                "type": result.get("type"),
-                "publication_year": result.get("anneePublication"),
-                "publisher": result.get("publicateur"),
-                "url": result.get("urlDocument"),
-                "project_code": result.get("codeProjet"),
-            }
+            # Only process DOCUMENT type and ensure URL exists and ends with .pdf
+            url_document = result.get("urlDocument")
+            if url_document and url_document.lower().endswith('.pdf'):
+                # Create metadata
+                metadata = {
+                    "id": result.get("id"),
+                    "title": result.get("titre"),
+                    "publication_year": result.get("anneePublication"),
+                    "publisher": result.get("publicateur"),
+                    "url": result.get("urlDocument"),
+                    "project_code": result.get("codeProjet"),
+                }
 
-            # Create Document object
-            doc = Document(
-                page_content=result.get("description", ""), metadata=metadata
-            )
-            documents.append(doc)
+                # Create Document object
+                doc = Document(
+                    page_content=result.get("description", ""), metadata=metadata
+                )
+                documents.append(doc)
 
         return documents
