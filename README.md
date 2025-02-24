@@ -1,4 +1,4 @@
-# AgriBot - Assistant IA pour Conseillers Agricoles
+# Chat bottes - Assistant IA pour Conseillers Agricoles
 
 ## 🏆 Contexte
 
@@ -6,7 +6,7 @@ Projet développé dans le cadre du Hackathon IA du Salon International de l'Agr
 
 ## 💡 Notre Solution
 
-AgriBot est un assistant conversationnel intelligent qui valorise la base documentaire RD-Agri, actuellement sous-exploitée. Notre solution vise à transformer cette ressource précieuse en un outil pratique et efficace pour les conseillers agricoles, en leur permettant d'accéder rapidement aux informations pertinentes issues des documents institutionnels et des organismes agricoles.
+Chat bottes est un assistant conversationnel intelligent qui valorise la base documentaire RD-Agri, actuellement sous-exploitée. Notre solution vise à transformer cette ressource précieuse en un outil pratique et efficace pour les conseillers agricoles, en leur permettant d'accéder rapidement aux informations pertinentes issues des documents institutionnels et des organismes agricoles.
 
 ## 🎯 Problématique Adressée
 
