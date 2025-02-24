@@ -14,5 +14,5 @@ class IndexState:
     """
 
 
-    project_list: list[str]
+    fullText: str
     """The URL to the site map to index."""

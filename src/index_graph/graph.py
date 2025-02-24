@@ -1,6 +1,7 @@
 """This "graph" simply exposes an endpoint for a user to upload docs to be indexed."""
 
 import asyncio
+import requests
 from typing import List, Optional
 
 from langchain_core.documents import Document
@@ -30,39 +31,45 @@ async def index_docs(
         state (IndexState): The current state containing documents and retriever.
         config (Optional[RunnableConfig]): Configuration for the indexing process.r
     """
-    if not config:
-        raise ValueError("Configuration required to run index_docs.")
+    # if not config:
+    #     raise ValueError("Configuration required to run index_docs.")
 
-    project_list = state.project_list
+    # project_list = state.project_list
 
     # Process each URL
-    docs = []
+    # docs = []
+    print(state.fullText)
 
-    # Convert synchronous function to async
-    async def async_get_code_chunks(code):
-        return await asyncio.get_event_loop().run_in_executor(
-            None, get_chuncks_from_code_project, code
-        )
+    payload = {
+            "fullText": state.fullText,
+            "motsCles": [],
+            "enrichPath": [
+                "region_complexe/Normandie"
+            ],
+            "organismes": [],
+            "typesDonnees": ["DOCUMENT"],
+            "annees": [],
+            "page": 0,
+            "searchSize": 2000,
+            "tri": "DATE",
+        }
+    
+    response = requests.post("https://rd-agri.fr/rest/search/getResults", json=payload, verify=False)
+    data = response.json()
 
-    # Process all URLs in parallel
-    chunk_tasks = [async_get_code_chunks(code) for code in project_list]
-    chunks_list = await asyncio.gather(*chunk_tasks)
+    documents_url = []
 
-    # Flatten the list of lists into single docs list
-    docs = [doc for chunks in chunks_list for doc in chunks]
-
-    with retrieval.make_retriever(config) as retriever:
-        batch_size = min(
-            500, max(1, len(docs))
-        )  # Target 500 docs per batch, but handle smaller doc counts
-        for i in range(0, len(docs), batch_size):
-            batch = docs[i : i + batch_size]
-            await retriever.aadd_documents(batch)
-            print(
-                f"Indexed batch {i//batch_size + 1} of {(len(docs) + batch_size - 1)//batch_size}"
-            )
-
-    return {"docs": docs}
+    for document in data.get("results", []):
+        urlDocument = document.get("urlDocument")
+        if (urlDocument is None or not urlDocument.split('?')[0].lower().endswith('.pdf') or urlDocument.startswith('/rest/content/getFile/')):
+            continue
+        # if (urlDocument.startswith('/rest/content/getFile/')):
+            # urlDocument = 'https://rd-agri.fr' + urlDocument
+        print(urlDocument)
+        documents_url.append(urlDocument)
+    
+    # URL OK, intégrer index
+    return {}
 
 
 def get_chuncks_from_code_project(code: str) -> List[Document]:

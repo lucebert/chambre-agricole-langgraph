@@ -20,7 +20,7 @@ class CodeProjectLoader:
             "enrichPath": [],
             "organismes": [],
             "typesDonnees": ["DOCUMENT"],
-            "codeProjet": self.project_code,
+            "codeProjet": [],
             "annees": [],
             "page": 0,
             "searchSize": 2000,
