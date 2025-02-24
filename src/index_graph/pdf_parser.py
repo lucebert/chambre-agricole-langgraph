@@ -31,7 +31,7 @@ class PDFParser:
         """Télécharge un PDF et le stocke temporairement"""
         filename = os.path.join(self.temp_pdf_dir, os.path.basename(url))
         try:
-            response = requests.get(url, stream=True)
+            response = requests.get(url, stream=True, verify=False)
             if response.status_code == 200:
                 with open(filename, "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192):

@@ -12,6 +12,7 @@ from index_graph.configuration import IndexConfiguration
 from index_graph.loaders import CodeProjectLoader
 from index_graph.pdf_parser import PDFParser
 from index_graph.state import IndexState
+from shared import retrieval
 
 
 async def index_docs(
@@ -40,7 +41,7 @@ async def index_docs(
     print(state.fullText)
 
     payload = {
-            "fullText": state.fullText,
+            "fullText": "couverts végétaux",
             "motsCles": [],
             "enrichPath": [
                 "region_complexe/Normandie"
@@ -49,14 +50,14 @@ async def index_docs(
             "typesDonnees": ["DOCUMENT"],
             "annees": [],
             "page": 0,
-            "searchSize": 10,
+            "searchSize": 2000,
             "tri": "DATE",
         }
     
     response = requests.post("https://rd-agri.fr/rest/search/getResults", json=payload, verify=False)
     data = response.json()
 
-    documents_metadata = []
+    pdf_parser = PDFParser()
 
     for document in data.get("results", []):
         urlDocument = document.get("urlDocument")
@@ -70,17 +71,17 @@ async def index_docs(
                 "publisher": document.get("publicateur"),
                 "url": urlDocument,
                 "project_code": document.get("codeProjet"),
-            }
-        documents_metadata.append(metadata)
-
-    documents = []
-    pdf_parser = PDFParser()
-    for metadata in documents_metadata:
-        text = pdf_parser.process_pdf(metadata.get("url"))
+        }
+        text = pdf_parser.process_pdf(urlDocument)
         if text:
-            documents.append(Document(page_content=text, metadata=metadata))
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+            docs = text_splitter.create_documents([text], metadatas=[metadata])
+            with retrieval.make_retriever(config) as retriever:
+                    await retriever.aadd_documents(docs)
+                    print(
+                        f"Indexed docs {docs}"
+                    )
 
-    print(documents)
     # URL OK, intégrer index
     return {}
 
