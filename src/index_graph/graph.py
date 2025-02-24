@@ -1,8 +1,6 @@
 """This "graph" simply exposes an endpoint for a user to upload docs to be indexed."""
-
 from typing import List, Optional
 
-import requests
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -38,52 +36,26 @@ async def index_docs(
 
     # Process each URL
     # docs = []
-    print(state.fullText)
-
-    payload = {
-            "fullText": "couverts végétaux",
-            "motsCles": [],
-            "enrichPath": [
-                "region_complexe/Normandie"
-            ],
-            "organismes": [],
-            "typesDonnees": ["DOCUMENT"],
-            "annees": [],
-            "page": 0,
-            "searchSize": 2000,
-            "tri": "DATE",
-        }
-    
-    response = requests.post("https://rd-agri.fr/rest/search/getResults", json=payload, verify=False)
-    data = response.json()
-
     pdf_parser = PDFParser()
-
-    for document in data.get("results", []):
-        urlDocument = document.get("urlDocument")
-        if (urlDocument is None or not urlDocument.split('?')[0].lower().endswith('.pdf')): #or urlDocument.startswith('/rest/content/getFile/')):
-            continue
-        if (urlDocument.startswith('/rest/content/getFile/')):
-            urlDocument = 'https://rd-agri.fr' + urlDocument
-        metadata = {
-                "title": document.get("titre"),
-                "publication_year": document.get("anneePublication"),
-                "publisher": document.get("publicateur"),
-                "url": urlDocument,
-                "project_code": document.get("codeProjet"),
-        }
-        text = pdf_parser.process_pdf(urlDocument)
-        if text:
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-            docs = text_splitter.create_documents([text], metadatas=[metadata])
-            with retrieval.make_retriever(config) as retriever:
-                    await retriever.aadd_documents(docs)
-                    print(
-                        f"Indexed docs {docs}"
-                    )
+    metadata = {
+            "title": state.title,
+            "publication_year": state.publication_year,
+            "publisher": state.publisher,
+            "url": state.url,
+            "project_code": state.project_code,
+    }
+    text = pdf_parser.process_pdf(state.url)
+    if text:
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        docs = text_splitter.create_documents([text], metadatas=[metadata])
+        with retrieval.make_retriever(config) as retriever:
+                await retriever.aadd_documents(docs)
+                print(
+                    f"Indexed docs {docs}"
+                )
 
     # URL OK, intégrer index
-    return {}
+    return { "docs": docs }
 
 
 def get_chuncks_from_code_project(code: str) -> List[Document]:

@@ -12,7 +12,8 @@ class IndexState:
     the documents to be indexed and the retriever used for searching
     these documents.
     """
-
-
-    fullText: str
-    """The URL to the site map to index."""
+    title: str
+    publication_year: str
+    publisher: str
+    url: str
+    project_code: str
