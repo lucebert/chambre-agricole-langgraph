@@ -61,10 +61,10 @@ async def index_docs(
 
     for document in data.get("results", []):
         urlDocument = document.get("urlDocument")
-        if (urlDocument is None or not urlDocument.split('?')[0].lower().endswith('.pdf') or urlDocument.startswith('/rest/content/getFile/')):
+        if (urlDocument is None or not urlDocument.split('?')[0].lower().endswith('.pdf')): #or urlDocument.startswith('/rest/content/getFile/')):
             continue
-        # if (urlDocument.startswith('/rest/content/getFile/')):
-            # urlDocument = 'https://rd-agri.fr' + urlDocument
+        if (urlDocument.startswith('/rest/content/getFile/')):
+            urlDocument = 'https://rd-agri.fr' + urlDocument
         print(urlDocument)
         documents_url.append(urlDocument)
     
