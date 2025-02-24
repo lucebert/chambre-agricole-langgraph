@@ -1,11 +1,13 @@
-import os
 import base64
-import fitz
-import anthropic
-import requests
+import os
 import time
-from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import anthropic
+import fitz
+import requests
+from dotenv import load_dotenv
+
 
 class PDFParser:
     def __init__(self, model="claude-3-5-sonnet-latest"):
@@ -13,7 +15,7 @@ class PDFParser:
         load_dotenv()
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         self.client = anthropic.Anthropic(api_key=self.api_key)
-        
+
         self.model = model
         self.pages_per_chunk = 5
         self.max_size = 10 * 1024 * 1024  # 10MB
@@ -36,7 +38,9 @@ class PDFParser:
                         f.write(chunk)
                 return filename
             else:
-                print(f"⚠️ Impossible de télécharger {url} (Code: {response.status_code})")
+                print(
+                    f"⚠️ Impossible de télécharger {url} (Code: {response.status_code})"
+                )
         except requests.RequestException as e:
             print(f"❌ Erreur téléchargement {url}: {e}")
         return None
@@ -51,7 +55,12 @@ class PDFParser:
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = {
-                executor.submit(self._process_pdf_chunk, pdf_path, i, min(i + self.pages_per_chunk, total_pages)): i
+                executor.submit(
+                    self._process_pdf_chunk,
+                    pdf_path,
+                    i,
+                    min(i + self.pages_per_chunk, total_pages),
+                ): i
                 for i in range(0, total_pages, self.pages_per_chunk)
             }
 
@@ -75,7 +84,7 @@ class PDFParser:
         pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
 
         if len(pdf_bytes) > self.max_size:
-            print(f"⚠️ Chunk {start_page+1}-{end_page} trop grand, ignoré.")
+            print(f"⚠️ Chunk {start_page + 1}-{end_page} trop grand, ignoré.")
             return None
 
         for attempt in range(1, self.max_retries + 1):
@@ -92,8 +101,8 @@ class PDFParser:
                                     "source": {
                                         "type": "base64",
                                         "media_type": "application/pdf",
-                                        "data": pdf_base64
-                                    }
+                                        "data": pdf_base64,
+                                    },
                                 },
                                 {
                                     "type": "text",
@@ -101,27 +110,36 @@ class PDFParser:
                                 }
                             ]
                         }
-                    ]
+                    ],
                 )
 
                 if isinstance(response.content, list):
-                    extracted_text = " ".join(item.text if hasattr(item, "text") else str(item) for item in response.content)
+                    extracted_text = " ".join(
+                        item.text if hasattr(item, "text") else str(item)
+                        for item in response.content
+                    )
                 else:
-                    extracted_text = response.content.text if hasattr(response.content, "text") else response.content
+                    extracted_text = (
+                        response.content.text
+                        if hasattr(response.content, "text")
+                        else response.content
+                    )
 
                 return {
                     "start_page": start_page + 1,
                     "end_page": end_page,
-                    "text": extracted_text
+                    "text": extracted_text,
                 }
 
             except anthropic.APIStatusError as e:
                 if "429" in str(e):
                     wait_time = self.retry_delay * attempt
-                    print(f"⏳ Rate limit dépassé (tentative {attempt}). Pause de {wait_time}s...")
+                    print(
+                        f"⏳ Rate limit dépassé (tentative {attempt}). Pause de {wait_time}s..."
+                    )
                     time.sleep(wait_time)
                 else:
-                    print(f"❌ Erreur pages {start_page+1}-{end_page}: {str(e)}")
+                    print(f"❌ Erreur pages {start_page + 1}-{end_page}: {str(e)}")
                     return None
 
         return None
@@ -133,9 +151,3 @@ class PDFParser:
             return self.extract_text_from_pdf(pdf_path)
         else:
             return None
-
-if __name__ == "__main__":
-    pdf_url = "https://opera-connaissances.chambres-agriculture.fr/doc_num.php?explnum_id=191827"
-    extractor = PDFParser()
-    text = extractor.process_pdf(pdf_url)
-    print("text : ", text)

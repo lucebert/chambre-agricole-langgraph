@@ -1,9 +1,8 @@
 """This "graph" simply exposes an endpoint for a user to upload docs to be indexed."""
 
-import asyncio
-import requests
 from typing import List, Optional
 
+import requests
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -11,8 +10,8 @@ from langgraph.graph import END, START, StateGraph
 
 from index_graph.configuration import IndexConfiguration
 from index_graph.loaders import CodeProjectLoader
+from index_graph.pdf_parser import PDFParser
 from index_graph.state import IndexState
-from shared import retrieval
 
 
 async def index_docs(
@@ -50,14 +49,14 @@ async def index_docs(
             "typesDonnees": ["DOCUMENT"],
             "annees": [],
             "page": 0,
-            "searchSize": 2000,
+            "searchSize": 10,
             "tri": "DATE",
         }
     
     response = requests.post("https://rd-agri.fr/rest/search/getResults", json=payload, verify=False)
     data = response.json()
 
-    documents_url = []
+    documents_metadata = []
 
     for document in data.get("results", []):
         urlDocument = document.get("urlDocument")
@@ -65,9 +64,23 @@ async def index_docs(
             continue
         if (urlDocument.startswith('/rest/content/getFile/')):
             urlDocument = 'https://rd-agri.fr' + urlDocument
-        print(urlDocument)
-        documents_url.append(urlDocument)
-    
+        metadata = {
+                "title": document.get("titre"),
+                "publication_year": document.get("anneePublication"),
+                "publisher": document.get("publicateur"),
+                "url": urlDocument,
+                "project_code": document.get("codeProjet"),
+            }
+        documents_metadata.append(metadata)
+
+    documents = []
+    pdf_parser = PDFParser()
+    for metadata in documents_metadata:
+        text = pdf_parser.process_pdf(metadata.get("url"))
+        if text:
+            documents.append(Document(page_content=text, metadata=metadata))
+
+    print(documents)
     # URL OK, intégrer index
     return {}
 
