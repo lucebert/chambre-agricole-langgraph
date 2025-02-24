@@ -97,7 +97,7 @@ class PDFParser:
                                 },
                                 {
                                     "type": "text",
-                                    "text": "Extract only the raw text from this PDF section in French, with no additional comments. If the document does not concern Normandy, ignore it."
+                                    "text": "Extract only the raw text from this PDF section in French, with no additional comments."
                                 }
                             ]
                         }
