@@ -72,4 +72,4 @@ workflow.add_edge("generate", END)
 
 # Compile
 graph = workflow.compile()
-graph.name = "SimpleRag"
+graph.name = "RetrievalGraph"

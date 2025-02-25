@@ -2,11 +2,13 @@ import base64
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import asyncio
 
 import anthropic
 import fitz
 import requests
 from dotenv import load_dotenv
+import aiohttp
 
 
 class PDFParser:
@@ -14,7 +16,7 @@ class PDFParser:
         """Initialise les paramètres et API Keys"""
         load_dotenv()
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
-        self.client = anthropic.Anthropic(api_key=self.api_key)
+        self.client = anthropic.AsyncAnthropic(api_key=self.api_key)
 
         self.model = model
         self.pages_per_chunk = 5
@@ -45,34 +47,27 @@ class PDFParser:
             print(f"❌ Erreur téléchargement {url}: {e}")
         return None
 
-    def extract_text_from_pdf(self, pdf_path):
+    async def extract_text_from_pdf(self, pdf_path):
         """Extrait et fusionne le texte d'un PDF via Claude 3.5 en chunks"""
         doc = fitz.open(pdf_path)
         total_pages = len(doc)
         doc.close()
 
+        tasks = []
+        for i in range(0, total_pages, self.pages_per_chunk):
+            end_page = min(i + self.pages_per_chunk, total_pages)
+            tasks.append(self._process_pdf_chunk(pdf_path, i, end_page))
+
         extracted_texts = []
-
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = {
-                executor.submit(
-                    self._process_pdf_chunk,
-                    pdf_path,
-                    i,
-                    min(i + self.pages_per_chunk, total_pages),
-                ): i
-                for i in range(0, total_pages, self.pages_per_chunk)
-            }
-
-            for future in as_completed(futures):
-                result = future.result()
-                if result:
-                    extracted_texts.append(result["text"])
+        results = await asyncio.gather(*tasks)
+        for result in results:
+            if result:
+                extracted_texts.append(result["text"])
 
         os.remove(pdf_path)  # Suppression après traitement
         return "\n\n".join(extracted_texts)  # Fusion du texte
 
-    def _process_pdf_chunk(self, pdf_path, start_page, end_page):
+    async def _process_pdf_chunk(self, pdf_path, start_page, end_page):
         """Découpe un PDF en chunks et envoie à Claude 3.5"""
         doc = fitz.open(pdf_path)
         sub_doc = fitz.open()
@@ -89,7 +84,7 @@ class PDFParser:
 
         for attempt in range(1, self.max_retries + 1):
             try:
-                response = self.client.messages.create(
+                response = await self.client.messages.create(
                     model=self.model,
                     max_tokens=2048,
                     messages=[
@@ -144,10 +139,10 @@ class PDFParser:
 
         return None
 
-    def process_pdf(self, pdf_url):
+    async def process_pdf(self, pdf_url):
         """Pipeline complet pour traiter un seul PDF et retourner le texte fusionné"""
         pdf_path = self.download_pdf(pdf_url)
         if pdf_path:
-            return self.extract_text_from_pdf(pdf_path)
+            return await self.extract_text_from_pdf(pdf_path)
         else:
             return None

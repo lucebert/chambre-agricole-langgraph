@@ -1,5 +1,6 @@
 """This "graph" simply exposes an endpoint for a user to upload docs to be indexed."""
 from typing import Optional
+import asyncio
 
 from langchain_core.runnables import RunnableConfig
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -7,8 +8,30 @@ from langgraph.graph import END, START, StateGraph
 
 from index_graph.configuration import IndexConfiguration
 from index_graph.pdf_parser import PDFParser
-from index_graph.state import IndexState
+from index_graph.state import IndexState, InputState
 from shared import retrieval
+
+
+async def retreive_pdf(
+    state: InputState, *, config: Optional[RunnableConfig] = None
+) -> dict[str, str]:
+    """Retrieve the PDF from the URL."""
+    pdf_parser = PDFParser()
+    
+    text = await pdf_parser.process_pdf(state.url)
+    
+    metadata = {
+            "title": state.title,
+            "publication_year": state.publication_year,
+            "publisher": state.publisher,
+            "url": state.url,
+            "project_code": state.project_code,
+    }
+
+    if text:
+        return {"metadata": metadata, "pdf_text": text}
+    else:
+        return {}
 
 
 async def index_docs(
@@ -27,18 +50,9 @@ async def index_docs(
         state (IndexState): The current state containing documents and retriever.
         config (Optional[RunnableConfig]): Configuration for the indexing process.r
     """
-    pdf_parser = PDFParser()
-    metadata = {
-            "title": state.title,
-            "publication_year": state.publication_year,
-            "publisher": state.publisher,
-            "url": state.url,
-            "project_code": state.project_code,
-    }
-    text = pdf_parser.process_pdf(state.url)
-    if text:
+    if state.pdf_text:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        docs = text_splitter.create_documents([text], metadatas=[metadata])
+        docs = text_splitter.create_documents([state.pdf_text], metadatas=[state.metadata])
         with retrieval.make_retriever(config) as retriever:
                 await retriever.aadd_documents(docs)
                 print(
@@ -48,11 +62,13 @@ async def index_docs(
     # URL OK, intégrer index
     return {}
 
-
 # Define the graph
-builder = StateGraph(IndexState, config_schema=IndexConfiguration)
+builder = StateGraph(IndexState, input=InputState, config_schema=IndexConfiguration)
+builder.add_node(retreive_pdf)
 builder.add_node(index_docs)
-builder.add_edge(START, "index_docs")
+
+builder.add_edge(START, "retreive_pdf")
+builder.add_edge("retreive_pdf", "index_docs")
 builder.add_edge("index_docs", END)
 # Compile into a graph object that you can invoke and deploy.
 graph = builder.compile()
