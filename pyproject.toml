@@ -17,6 +17,7 @@ dependencies = [
     "msgspec>=0.18.6",
     "pymupdf>=1.25.3",
     "anthropic>=0.46.0",
+    "geopy==2.4.1"
 ]
 
 [project.optional-dependencies]
@@ -27,13 +28,14 @@ requires = ["setuptools>=73.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["retrieval_graph", "index_graph", "shared"]
+packages = ["retrieval_graph", "index_graph", "shared", "utils"]
 [tool.setuptools.package-dir]
 "langgraph.templates.retrieval_graph" = "src/retrieval_graph"
 "langgraph.templates.index_graph" = "src/index_graph"
 "retrieval_graph" = "src/retrieval_graph"
 "index_graph" = "src/index_graph"
 "shared" = "src/shared"
+"utils" = "src/utils"
 
 
 [tool.setuptools.package-data]

@@ -63,3 +63,4 @@ class GraphState(InputState):
     """
 
     documents: List[str] = field(default_factory=list)
+    weather: List[dict] = field(default_factory=list)
