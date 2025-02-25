@@ -37,7 +37,7 @@ class BaseConfiguration:
     )
 
     search_kwargs: dict[str, Any] = field(
-        default_factory=dict,
+        default_factory=lambda: {"k": 10},
         metadata={
             "description": "Additional keyword arguments to pass to the search function of the retriever."
         },
