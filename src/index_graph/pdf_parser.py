@@ -20,6 +20,7 @@ class PDFParser:
 
         self.model = model
         self.pages_per_chunk = 5
+        self.max_pages = 10  # Ajout de la limite de pages
         self.max_size = 10 * 1024 * 1024  # 10MB
         self.max_workers = 8
         self.retry_delay = 10
@@ -48,9 +49,9 @@ class PDFParser:
         return None
 
     async def extract_text_from_pdf(self, pdf_path):
-        """Extrait et fusionne le texte d'un PDF via Claude 3.5 en chunks"""
+        """Extrait et fusionne le texte d'un PDF via Claude 3.5 en chunks (max 10 pages)"""
         doc = fitz.open(pdf_path)
-        total_pages = len(doc)
+        total_pages = min(len(doc), self.max_pages)  # Limite à 10 pages
         doc.close()
 
         extracted_texts = []
