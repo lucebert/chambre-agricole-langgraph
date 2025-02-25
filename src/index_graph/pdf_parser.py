@@ -53,14 +53,10 @@ class PDFParser:
         total_pages = len(doc)
         doc.close()
 
-        tasks = []
+        extracted_texts = []
         for i in range(0, total_pages, self.pages_per_chunk):
             end_page = min(i + self.pages_per_chunk, total_pages)
-            tasks.append(self._process_pdf_chunk(pdf_path, i, end_page))
-
-        extracted_texts = []
-        results = await asyncio.gather(*tasks)
-        for result in results:
+            result = await self._process_pdf_chunk(pdf_path, i, end_page)
             if result:
                 extracted_texts.append(result["text"])
 

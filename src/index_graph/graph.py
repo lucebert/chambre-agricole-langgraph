@@ -1,6 +1,5 @@
 """This "graph" simply exposes an endpoint for a user to upload docs to be indexed."""
 from typing import Optional
-import asyncio
 
 from langchain_core.runnables import RunnableConfig
 from langchain_text_splitters import RecursiveCharacterTextSplitter
