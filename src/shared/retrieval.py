@@ -34,7 +34,7 @@ def make_text_encoder(model: str) -> Embeddings:
 
 @contextmanager
 def make_pinecone_retriever(
-    configuration: BaseConfiguration, embedding_model: Embeddings
+    embedding_model: Embeddings
 ) -> Generator[VectorStoreRetriever, None, None]:
     """Configure this agent to connect to a specific pinecone index."""
     from langchain_pinecone import PineconeVectorStore
@@ -42,7 +42,7 @@ def make_pinecone_retriever(
     vstore = PineconeVectorStore.from_existing_index(
         os.environ["PINECONE_INDEX_NAME"], embedding=embedding_model
     )
-    yield vstore.as_retriever(search_kwargs=configuration.search_kwargs)
+    yield vstore.as_retriever(search_kwargs={"k": 10})
 
 @contextmanager
 def make_retriever(
@@ -53,7 +53,7 @@ def make_retriever(
     embedding_model = make_text_encoder(configuration.embedding_model)
     match configuration.retriever_provider:
         case "pinecone":
-            with make_pinecone_retriever(configuration, embedding_model) as retriever:
+            with make_pinecone_retriever(embedding_model) as retriever:
                 yield retriever
 
         case _:

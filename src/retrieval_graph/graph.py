@@ -2,15 +2,15 @@
 
 from langchain import hub
 from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langgraph.graph import END, START, StateGraph
 
 from retrieval_graph.configuration import RetreiveConfiguration
 from retrieval_graph.state import GraphState, InputState
-from shared import retrieval
+from shared.retrieval import make_pinecone_retriever
 
 
-def retrieve(state: GraphState, *, config) -> dict[str, list[str] | str]: 
+def retrieve(state: GraphState) -> dict[str, list[str] | str]: 
     """Retrieve documents
 
     Args:
@@ -24,12 +24,12 @@ def retrieve(state: GraphState, *, config) -> dict[str, list[str] | str]:
     question = " ".join(msg.content for msg in state.messages if isinstance(msg, HumanMessage))
 
     # Retrieval
-    with retrieval.make_retriever(config) as retriever:
+    with make_pinecone_retriever(OpenAIEmbeddings(model="text-embedding-3-small")) as retriever:
         documents = retriever.invoke(question)
         return {"documents": documents, "message": state.messages}
 
 
-async def generate(state: GraphState, config: RetreiveConfiguration):
+async def generate(state: GraphState):
     """
     Generate answer
 
@@ -48,9 +48,7 @@ async def generate(state: GraphState, config: RetreiveConfiguration):
     prompt = hub.pull("chambre-agri/rag-main")
 
     # LLM
-    configuration = RetreiveConfiguration.from_runnable_config(config)
-
-    llm = ChatOpenAI(model_name=configuration.retreive_model, temperature=0)
+    llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
     
 
     # Chain
@@ -59,7 +57,7 @@ async def generate(state: GraphState, config: RetreiveConfiguration):
     return {"messages": [response], "documents": documents}
 
 
-workflow = StateGraph(GraphState, input=InputState, config_schema=RetreiveConfiguration)
+workflow = StateGraph(GraphState, input_schema=InputState)
 
 # Define the nodes
 workflow.add_node("retrieve", retrieve)
